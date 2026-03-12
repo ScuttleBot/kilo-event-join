@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 
 async function getActiveEventId() {
@@ -11,8 +11,12 @@ async function getActiveEventId() {
     .single()
 }
 
-export async function POST() {
-  const { data: event, error: eventError } = await getActiveEventId()
+export async function POST(req: NextRequest) {
+  const url = new URL(req.url)
+  const eventId = url.searchParams.get('event')
+  const { data: event, error: eventError } = eventId
+    ? await supabaseServer.from('events').select('id').eq('id', eventId).single()
+    : await getActiveEventId()
 
   if (eventError || !event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })

@@ -12,8 +12,12 @@ async function getActiveEventId() {
 }
 
 // GET /api/attendees - returns recent attendees + count
-export async function GET() {
-  const { data: event, error: eventError } = await getActiveEventId()
+export async function GET(req: NextRequest) {
+  const url = new URL(req.url)
+  const eventId = url.searchParams.get('event')
+  const { data: event, error: eventError } = eventId
+    ? await supabaseServer.from('events').select('id').eq('id', eventId).single()
+    : await getActiveEventId()
 
   if (eventError || !event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })
@@ -36,13 +40,15 @@ export async function GET() {
 
 // POST /api/attendees - join an event
 export async function POST(req: NextRequest) {
-  const { email, name } = await req.json()
+  const { email, name, eventId } = await req.json()
 
   if (!email) {
     return NextResponse.json({ error: 'Email is required' }, { status: 400 })
   }
 
-  const { data: event, error: eventError } = await getActiveEventId()
+  const { data: event, error: eventError } = eventId
+    ? await supabaseServer.from('events').select('id').eq('id', eventId).single()
+    : await getActiveEventId()
 
   if (eventError || !event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })

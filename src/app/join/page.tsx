@@ -11,6 +11,7 @@ type Event = { id: string; name: string; code: string }
 function JoinPageInner() {
   const searchParams = useSearchParams()
   const threshold = parseInt(searchParams.get('threshold') || '0')
+  const eventIdParam = searchParams.get('event')
 
   const [event, setEvent] = useState<Event | null>(null)
   const [count, setCount] = useState(0)
@@ -23,7 +24,8 @@ function JoinPageInner() {
   const [offerJustUnlocked, setOfferJustUnlocked] = useState(false)
 
   useEffect(() => {
-    fetch('/api/event')
+    const eventUrl = eventIdParam ? `/api/event?event=${eventIdParam}` : '/api/event'
+    fetch(eventUrl)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); return }
@@ -39,7 +41,8 @@ function JoinPageInner() {
   useEffect(() => {
     if (!event || threshold <= 0) return
     const interval = setInterval(() => {
-      fetch('/api/event')
+      const eventUrl = eventIdParam ? `/api/event?event=${eventIdParam}` : '/api/event'
+      fetch(eventUrl)
         .then(r => r.json())
         .then(data => {
           if (data.error) return
@@ -62,7 +65,7 @@ function JoinPageInner() {
     const res = await fetch('/api/attendees', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, name }),
+      body: JSON.stringify({ email, name, eventId: event?.id || eventIdParam }),
     })
     const data = await res.json()
     setIsSubmitting(false)

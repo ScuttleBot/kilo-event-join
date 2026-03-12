@@ -41,19 +41,11 @@ async function getActiveEvent() {
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const presentview = url.searchParams.get('presentview')
+  const eventId = url.searchParams.get('event')
 
   if (presentview === 'launch') {
     const { data: latest } = await getActiveEvent()
     const eventName = latest?.name ?? DEFAULT_EVENT_NAME
-
-    const { error: deactivateError } = await supabaseServer
-      .from('events')
-      .update({ is_active: false })
-      .eq('is_active', true)
-
-    if (deactivateError) {
-      return NextResponse.json({ error: 'Failed to start new event' }, { status: 500 })
-    }
 
     const { event: created, error: createError } = await createEvent(eventName)
     if (createError || !created) {
@@ -68,7 +60,22 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ event: created, count: count ?? 0 })
   }
 
-  let { data: event, error: eventError } = await getActiveEvent()
+  let event = null as any
+  let eventError = null as any
+
+  if (eventId) {
+    const result = await supabaseServer
+      .from('events')
+      .select('*')
+      .eq('id', eventId)
+      .single()
+    event = result.data
+    eventError = result.error
+  } else {
+    const result = await getActiveEvent()
+    event = result.data
+    eventError = result.error
+  }
 
   if (eventError || !event) {
     const { event: created, error: createError } = await createEvent(DEFAULT_EVENT_NAME)

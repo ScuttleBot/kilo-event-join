@@ -76,6 +76,7 @@ function LivePageInner() {
   const searchParams = useSearchParams()
   const threshold = parseInt(searchParams.get('threshold') || '0')
   const presentview = searchParams.get('presentview')
+  const eventIdParam = searchParams.get('event')
 
   const [event, setEvent] = useState<Event | null>(null)
   const [attendeeCount, setAttendeeCount] = useState(0)
@@ -92,13 +93,21 @@ function LivePageInner() {
       const params = threshold > 0 ? `?threshold=${threshold}` : ''
       setJoinUrl(`${window.location.origin}/join${params}`)
     }
-    const eventUrl = presentview === 'launch' ? '/api/event?presentview=launch' : '/api/event'
+    const eventUrl = presentview === 'launch'
+      ? '/api/event?presentview=launch'
+      : eventIdParam ? `/api/event?event=${eventIdParam}` : '/api/event'
     fetch(eventUrl)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); return }
         setEvent(data.event)
         setAttendeeCount(data.count)
+        if (presentview === 'launch' && data.event?.id && typeof window !== 'undefined') {
+          const nextParams = new URLSearchParams()
+          nextParams.set('event', data.event.id)
+          if (threshold > 0) nextParams.set('threshold', String(threshold))
+          window.history.replaceState(null, '', `/live?${nextParams.toString()}`)
+        }
       })
       .catch(() => setError('Failed to load event'))
   }, [])
@@ -106,7 +115,9 @@ function LivePageInner() {
   useEffect(() => {
     if (!event) return
     const interval = setInterval(() => {
-      fetch('/api/attendees')
+      const activeEventId = event?.id || eventIdParam
+      const attendeesUrl = activeEventId ? `/api/attendees?event=${activeEventId}` : '/api/attendees'
+      fetch(attendeesUrl)
         .then(r => r.json())
         .then(data => {
           if (data.error) return
