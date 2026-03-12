@@ -1,14 +1,18 @@
 import { NextResponse } from 'next/server'
 import { supabaseServer } from '@/lib/supabase-server'
 
-const EVENT_CODE = 'KILO2024'
-
-export async function POST() {
-  const { data: event, error: eventError } = await supabaseServer
+async function getActiveEventId() {
+  return supabaseServer
     .from('events')
     .select('id')
-    .eq('code', EVENT_CODE)
+    .eq('is_active', true)
+    .order('created_at', { ascending: false })
+    .limit(1)
     .single()
+}
+
+export async function POST() {
+  const { data: event, error: eventError } = await getActiveEventId()
 
   if (eventError || !event) {
     return NextResponse.json({ error: 'Event not found' }, { status: 404 })

@@ -75,6 +75,7 @@ function JoinToasts({ toasts }: { toasts: Toast[] }) {
 function LivePageInner() {
   const searchParams = useSearchParams()
   const threshold = parseInt(searchParams.get('threshold') || '0')
+  const presentview = searchParams.get('presentview')
 
   const [event, setEvent] = useState<Event | null>(null)
   const [attendeeCount, setAttendeeCount] = useState(0)
@@ -91,7 +92,8 @@ function LivePageInner() {
       const params = threshold > 0 ? `?threshold=${threshold}` : ''
       setJoinUrl(`${window.location.origin}/join${params}`)
     }
-    fetch('/api/event')
+    const eventUrl = presentview === 'launch' ? '/api/event?presentview=launch' : '/api/event'
+    fetch(eventUrl)
       .then(r => r.json())
       .then(data => {
         if (data.error) { setError(data.error); return }
